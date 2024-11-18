@@ -1,18 +1,66 @@
 import {
-  AppBar,
   Box,
   Button,
   Container,
   Grid,
-  IconButton,
   Paper,
   TextField,
-  Toolbar,
   Typography,
 } from "@mui/material";
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
 
 const Mypage = () => {
+  const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+
+  const deleteHandler = async () => {
+    try {
+      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/user/delete`);
+      setMessage("계정이 삭제되었습니다.");
+    } catch (error) {
+      alert("계정 삭제를 실패했습니다.");
+    }
+  };
+
+  const emailModifyHandler = async () => {
+    try {
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/user/update-email`,
+        { email }
+      );
+      setMessage(response.data.message); // 성공 메시지
+    } catch (error) {
+      alert("이메일 수정 실패했습니다.");
+    }
+  };
+
+  const nicknameModifyHandler = async () => {
+    try {
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/user/update-nickname`,
+        { nickname }
+      );
+      setMessage(response.data.message); // 성공 메시지
+    } catch (error) {
+      alert("닉네임 수정 실패했습니다.");
+    }
+  };
+
+  const passwordModifyHandler = async () => {
+    try {
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/user/update-password`,
+        { password }
+      );
+      setMessage(response.data.message); // 성공 메시지
+    } catch (error) {
+      alert("비밀번호 수정 실패했습니다");
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -35,29 +83,73 @@ const Mypage = () => {
           }}
         >
           <Grid container spacing={2}>
-            {["Email", "Nickname", "Password"].map((label) => (
-              <Grid item xs={12} key={label}>
-                <Typography variant="body1">{label}</Typography>
-                <TextField fullWidth variant="outlined" defaultValue="Value" />
-                <Button fullWidth variant="contained" color="primary">
-                  Duplicate Check
-                </Button>
-              </Grid>
-            ))}
             <Grid item xs={12}>
+              <Typography variant="body1">Email</Typography>
+              <TextField
+                fullWidth
+                variant="outlined"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
               <Button
                 fullWidth
                 variant="contained"
                 color="primary"
-                sx={{ mb: 1 }}
+                onClick={emailModifyHandler}
               >
-                Register
-              </Button>
-
-              <Button variant="contained" color="primary" fullWidth>
-                Delete Account
+                이메일 수정
               </Button>
             </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body1">Nickname</Typography>
+              <TextField
+                fullWidth
+                variant="outlined"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                onClick={nicknameModifyHandler}
+              >
+                닉네임 수정
+              </Button>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body1">Password</Typography>
+              <TextField
+                fullWidth
+                variant="outlined"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                onClick={passwordModifyHandler}
+              >
+                비밀번호 수정
+              </Button>
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="secondary"
+                onClick={deleteHandler}
+              >
+                계정 삭제
+              </Button>
+            </Grid>
+            {message && (
+              <Grid item xs={12}>
+                <Typography color="error">{message}</Typography>
+              </Grid>
+            )}
           </Grid>
         </Paper>
       </Container>

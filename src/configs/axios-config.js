@@ -47,7 +47,7 @@ axiosInstance.interceptors.response.use(
         );
 
         const token = res.data.result.token;
-        localStorage.setItem("ACCESS_TOKEN", token);
+        sessionStorage.setItem("ACCESS_TOKEN", token);
         originalRequest.headers.Authorization = `Bearer ${token}`;
         axiosInstance.defaults.headers.Authorization = `Bearer ${token}`;
 
