@@ -7,14 +7,21 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useUserContext } from "./UserContext";
 
 const Mypage = () => {
-  const [email, setEmail] = useState("");
-  const [nickname, setNickname] = useState("");
+  const { userEmail, userNickname } = useUserContext();
+  const [email, setEmail] = useState(userEmail);
+  const [nickname, setNickname] = useState(userNickname);
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setEmail(userEmail);
+    setNickname(userNickname);
+  }, [userEmail, userNickname]);
 
   const deleteHandler = async () => {
     try {
@@ -31,7 +38,7 @@ const Mypage = () => {
         `${process.env.REACT_APP_API_BASE_URL}/user/update-email`,
         { email }
       );
-      setMessage(response.data.message); // 성공 메시지
+      setMessage(response.data.message);
     } catch (error) {
       alert("이메일 수정 실패했습니다.");
     }
@@ -43,7 +50,7 @@ const Mypage = () => {
         `${process.env.REACT_APP_API_BASE_URL}/user/update-nickname`,
         { nickname }
       );
-      setMessage(response.data.message); // 성공 메시지
+      setMessage(response.data.message);
     } catch (error) {
       alert("닉네임 수정 실패했습니다.");
     }
@@ -55,7 +62,7 @@ const Mypage = () => {
         `${process.env.REACT_APP_API_BASE_URL}/user/update-password`,
         { password }
       );
-      setMessage(response.data.message); // 성공 메시지
+      setMessage(response.data.message);
     } catch (error) {
       alert("비밀번호 수정 실패했습니다");
     }
@@ -89,6 +96,7 @@ const Mypage = () => {
                 fullWidth
                 variant="outlined"
                 value={email}
+                placeholder={userEmail}
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Button
@@ -106,6 +114,7 @@ const Mypage = () => {
                 fullWidth
                 variant="outlined"
                 value={nickname}
+                placeholder={userNickname}
                 onChange={(e) => setNickname(e.target.value)}
               />
               <Button
@@ -123,6 +132,7 @@ const Mypage = () => {
                 fullWidth
                 variant="outlined"
                 type="password"
+                placeholder="************"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />

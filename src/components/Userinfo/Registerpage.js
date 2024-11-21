@@ -15,59 +15,49 @@ const Registerpage = () => {
   const [nickName, setNickName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailError, setEmailError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
 
   const navigate = useNavigate();
 
-  const emailValidation = async () => {
-    try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/user/emailValidation`,
-        {
-          email,
-        },
-        {
-          headers: { "Content-type": "application/json" },
-        }
-      );
-
-      if (res.status === 200) {
-        alert("사용가능한 이메일 입니다.");
-        navigate("/");
-      } else {
-        alert(res.data.statusMessage);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("이메일 중복확인 중 오류가 발생했습니다. 다시 시도해주세요.");
-    }
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
   };
 
-  const nickNameValidation = async () => {
-    try {
-      const res = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/user/emailValidation`,
-        {
-          nickName,
-        },
-        {
-          headers: { "Content-type": "application/json" },
-        }
-      );
+  const validatePassword = (password) => {
+    const regex = /^(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return regex.test(password);
+  };
 
-      if (res.status === 200) {
-        alert("사용가능한 닉네임 입니다.");
-        navigate("/");
-      } else {
-        alert(res.data.statusMessage);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("닉네임 중복확인 중 오류가 발생했습니다. 다시 시도해주세요.");
-    }
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmailError(!validateEmail(value));
+    setEmail(value);
+  };
+
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    setPassword(value);
+    setPasswordError(!validatePassword(value));
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    const value = e.target.value;
+    setConfirmPassword(value);
   };
 
   const memberCreate = async (e) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      alert("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    if (emailError || passwordError) {
+      alert("유효하지 않은 입력입니다.");
+      return;
+    }
     try {
       const res = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/user/register`,
@@ -126,7 +116,9 @@ const Registerpage = () => {
                   fullWidth
                   variant="outlined"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
+                  error={emailError}
+                  helperText={emailError ? "잘못된 이메일입니다." : ""}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -142,12 +134,37 @@ const Registerpage = () => {
               <Grid item xs={12}>
                 <TextField
                   label="Password"
-                  placeholder="비밀번호을 입력해주세요"
+                  placeholder="비밀번호를 입력해주세요"
                   fullWidth
                   variant="outlined"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
+                  error={passwordError}
+                  helperText={
+                    passwordError
+                      ? "비밀번호는 최소 8자, 소문자, 숫자 및 특수 문자를 포함해야 합니다."
+                      : ""
+                  }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Confirm Password"
+                  placeholder="비밀번호를 다시 한번 입력해주세요"
+                  fullWidth
+                  variant="outlined"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={handleConfirmPasswordChange}
+                  error={
+                    password && confirmPassword && password !== confirmPassword
+                  }
+                  helperText={
+                    password && confirmPassword && password !== confirmPassword
+                      ? "비밀번호가 일치하지 않습니다."
+                      : ""
+                  }
                 />
               </Grid>
               <Grid item xs={12}>
@@ -156,6 +173,9 @@ const Registerpage = () => {
                   fullWidth
                   variant="contained"
                   color="primary"
+                  disabled={
+                    emailError || passwordError || password !== confirmPassword
+                  }
                 >
                   Register
                 </Button>

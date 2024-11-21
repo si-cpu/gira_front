@@ -19,6 +19,7 @@ import axios from "axios";
 
 const Loginpage = () => {
   const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState(""); // 닉네임 상태 추가
   const [password, setPassword] = useState("");
   const [autoSignIn, setAutoSignIn] = useState(false);
   const [emailError, setEmailError] = useState("");
@@ -28,25 +29,18 @@ const Loginpage = () => {
   const navigate = useNavigate();
   const { onLogin } = useContext(AuthContext);
 
-  const validatePassword = (password) => {
-    const minLength = 8;
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  // 이메일 유효성 검사 패턴
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (password.length < minLength) {
-      return "비밀번호는 최소 8자 이상이어야 합니다.";
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmail(value);
+    setEmailError(""); // Clear error on change
+
+    // 이메일 유효성 검사
+    if (!emailPattern.test(value)) {
+      setEmailError("유효한 이메일 주소를 입력하세요.");
     }
-    if (!hasLowerCase) {
-      return "비밀번호에는 소문자가 포함되어야 합니다.";
-    }
-    if (!hasNumber) {
-      return "비밀번호에는 숫자가 포함되어야 합니다.";
-    }
-    if (!hasSpecialChar) {
-      return "비밀번호에는 특수 문자가 포함되어야 합니다.";
-    }
-    return "";
   };
 
   const doLogin = async () => {
@@ -54,19 +48,7 @@ const Loginpage = () => {
     setPasswordError("");
 
     if (!email) {
-      setEmailError("이메일을 입력하세요.");
-      return;
-    }
-
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(email)) {
-      setEmailError("유효한 이메일 주소를 입력하세요.");
-      return;
-    }
-
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      setPasswordError(passwordError);
+      setEmailError("정확한 이메일을 입력하세요.");
       return;
     }
 
@@ -92,7 +74,7 @@ const Loginpage = () => {
       } else {
         sessionStorage.setItem("jwtToken", token);
       }
-      onLogin(token, id, role);
+      onLogin(token, id, role, email, nickname); // 닉네임을 함께 전달
       navigate("/");
     } catch (e) {
       console.log(e);
@@ -101,15 +83,15 @@ const Loginpage = () => {
     }
   };
 
-  const sendVerificationCode = async () => {
+  const sendVerificationpassword = async () => {
     try {
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/send-verification-code`,
+        `${process.env.REACT_APP_API_BASE_URL}/send-email-verified`,
         { email }
       );
       alert("메일이 전송되었습니다. 이메일을 확인해주세요");
     } catch (error) {
-      alert("메일 전송 실패 이메일을 다시 작성해주세요");
+      alert("메일 전송 실패. 이메일을 다시 작성해주세요");
     }
   };
 
@@ -141,10 +123,20 @@ const Loginpage = () => {
                 fullWidth
                 variant="outlined"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 placeholder="이메일을 입력하세요"
                 error={!!emailError}
                 helperText={emailError}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body1">Nickname</Typography>
+              <TextField
+                fullWidth
+                variant="outlined"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)} // 닉네임 입력 핸들러
+                placeholder="닉네임을 입력하세요"
               />
             </Grid>
             <Grid item xs={12}>
@@ -203,7 +195,11 @@ const Loginpage = () => {
               </Grid>
             </Grid>
             <Grid item xs={12}>
-              <Link href="#" underline="hover" onClick={sendVerificationCode}>
+              <Link
+                href="#"
+                underline="hover"
+                onClick={sendVerificationpassword}
+              >
                 Forgot password?
               </Link>
             </Grid>

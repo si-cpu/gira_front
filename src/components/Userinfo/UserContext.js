@@ -6,41 +6,53 @@ const AuthContext = React.createContext({
   onLogout: () => {},
   userRole: "",
   isInit: false,
+  userEmail: "",
+  userNickname: "",
 });
 
 export const AuthContextProvider = (props) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [isInit, setIsInit] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [userNickname, setUserNickname] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("ACCESS_TOKEN");
+    const token = sessionStorage.getItem("ACCESS_TOKEN");
     if (token) {
       setIsLoggedIn(true);
-      setUserRole(localStorage.getItem("USER_ROLE"));
+      setUserRole(sessionStorage.getItem("USER_ROLE"));
     }
+    setUserEmail(sessionStorage.getItem("User_Email"));
+    setUserNickname(sessionStorage.getItem("Nickname_Email"));
     setIsInit(true);
   }, []);
 
   // 로그인 핸들러
-  const loginHandler = (token, id, role) => {
-    localStorage.setItem("ACCESS_TOKEN", token);
-    localStorage.setItem("USER_ID", id);
-    localStorage.setItem("USER_ROLE", role);
+  const loginHandler = (token, id, role, email, nickname) => {
+    sessionStorage.setItem("ACCESS_TOKEN", token);
+    sessionStorage.setItem("USER_ID", id);
+    sessionStorage.setItem("USER_ROLE", role);
+    sessionStorage.setItem("USER_EMAIL", email);
+    sessionStorage.setItem("USER_NICKNAME", nickname);
 
     setIsLoggedIn(true);
     setUserRole(role);
+    setUserEmail(email);
+    setUserNickname(nickname);
   };
 
   // 로그아웃 핸들러
   const logoutHandler = () => {
-    localStorage.clear();
+    sessionStorage.clear();
     setIsLoggedIn(false);
     setUserRole("");
+    setUserEmail("");
+    setUserNickname("");
   };
 
   useEffect(() => {
-    if (localStorage.getItem("ACCESS_TOKEN")) {
+    if (sessionStorage.getItem("ACCESS_TOKEN")) {
       setIsLoggedIn(true);
       setUserRole(localStorage.getItem("USER_ROLE"));
     }
@@ -49,6 +61,8 @@ export const AuthContextProvider = (props) => {
   return (
     <AuthContext.Provider
       value={{
+        userEmail,
+        userNickname,
         isLoggedIn,
         onLogin: loginHandler,
         onLogout: logoutHandler,
