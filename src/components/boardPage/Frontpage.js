@@ -38,24 +38,21 @@ const Frontpage = () => {
     setFrontImage(null);
   };
 
-  const handleUpload = async (event) => {};
-
   const joinFrontePage = async () => {
     try {
-      const res = await axios.post(
+      const res = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/board/getfe`,
-        { teamName },
         {
+          params: { teamName }, // 쿼리 파라미터로 teamName 전달
           headers: {
             Authorization: `Bearer ${token}`, // 헤더에 토큰 추가
-            "Content-Type": "application/json",
           },
         }
       );
 
       if (res.status === 200) {
         console.log("불러오기 성공");
-        setFrontImage(res.data.frontImage);
+        setFrontImage(res.data.wireframe);
         alert("불러오기를 성공했습니다.");
       }
     } catch (error) {
@@ -69,9 +66,17 @@ const Frontpage = () => {
       alert("이미지를 업로드해주세요.");
       return;
     }
-
+    const nickName = sessionStorage.getItem("USER_NICKNAME");
+    const teamName = useTeam;
     const formData = new FormData();
-    formData.append("frontImage", frontImage);
+    formData.append("wireframe", frontImage);
+    formData.append(
+      "data",
+      JSON.stringify({
+        writer: nickName,
+        teamName,
+      })
+    );
 
     try {
       const response = await axios.put(
@@ -80,7 +85,7 @@ const Frontpage = () => {
         {
           headers: {
             Authorization: `Bearer ${token}`, // 헤더에 토큰 추가
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         }
       );
@@ -152,7 +157,7 @@ const Frontpage = () => {
               marginTop="auto"
             >
               <StyledButton>수정</StyledButton>
-              <StyledButton>저장</StyledButton>
+              <StyledButton onClick={handleSave}>저장</StyledButton>
             </Box>
           </StyledPaper>
         </Grid>
