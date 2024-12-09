@@ -26,25 +26,51 @@ const Backepage = () => {
   const [preview, setPreview] = useState(null);
   const token = sessionStorage.getItem("ACCESS_TOKEN");
 
-  // 파일 업로드 핸들러
-  const handleFileUpload = async (e) => {
+  // 데이터 조회 (getbe로 고정)
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/board/getbe`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            teamName,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        console.log("데이터 불러오기 성공:", response.data);
+        const { result } = response.data;
+        setPreview(viewMode === "ERD" ? result.erd : result.api);
+      }
+    } catch (error) {
+      console.error("데이터 불러오기 실패:", error);
+      alert("데이터 불러오기 중 오류가 발생했습니다.");
+    }
+  };
+
+  // ERD 파일 업로드
+  const handleERDUpload = async (e) => {
     const uploadedFile = e.target.files[0];
     if (!uploadedFile) return;
 
     setFile(uploadedFile);
-    setPreview(URL.createObjectURL(uploadedFile)); // 미리보기 설정
+    setPreview(URL.createObjectURL(uploadedFile));
 
     try {
       const nickName = sessionStorage.getItem("USER_NICKNAME");
       const formData = new FormData();
-      formData.append(viewMode === "ERD" ? "api" : "api", uploadedFile); // key: "api", value: 파일
-      formData.append("data", JSON.stringify({ writer: nickName, teamName })); // key: "data", value: JSON 문자열
-
-      const endpoint =
-        viewMode === "ERD" ? "/board/updatebeerd" : "/board/updatebeapi";
+      formData.append("erd", uploadedFile);
+      formData.append("data", JSON.stringify({
+        writer: nickName,
+        teamName: teamName
+      }));
 
       const response = await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}${endpoint}`,
+        `${process.env.REACT_APP_API_BASE_URL}/board/updatebeerd`,
         formData,
         {
           headers: {
@@ -54,10 +80,48 @@ const Backepage = () => {
         }
       );
 
-      alert(`${viewMode} 파일 업로드 성공!`);
+      alert("ERD 파일 업로드 성공!");
       console.log("업로드 응답:", response.data);
+      fetchData();
     } catch (error) {
-      console.error(`${viewMode} 파일 업로드 실패:`, error);
+      console.error("ERD 파일 업로드 실패:", error);
+      alert("업로드 중 오류가 발생했습니다.");
+    }
+  };
+
+  // API 파일 업로드
+  const handleAPIUpload = async (e) => {
+    const uploadedFile = e.target.files[0];
+    if (!uploadedFile) return;
+
+    setFile(uploadedFile);
+    setPreview(URL.createObjectURL(uploadedFile));
+
+    try {
+      const nickName = sessionStorage.getItem("USER_NICKNAME");
+      const formData = new FormData();
+      formData.append("api", uploadedFile);
+      formData.append("data", JSON.stringify({
+        writer: nickName,
+        teamName: teamName
+      }));
+
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/board/updatebeapi`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      alert("API 파일 업로드 성공!");
+      console.log("업로드 응답:", response.data);
+      fetchData();
+    } catch (error) {
+      console.error("API 파일 업로드 실패:", error);
       alert("업로드 중 오류가 발생했습니다.");
     }
   };
@@ -95,34 +159,6 @@ const Backepage = () => {
     } catch (error) {
       console.error(`${viewMode} 파일 삭제 실패:`, error);
       alert("삭제 중 오류가 발생했습니다.");
-    }
-  };
-
-  // 데이터 불러오기
-  const fetchData = async () => {
-    try {
-      const endpoint =
-        viewMode === "ERD" ? "/board/getbeerd" : "/board/getbeapi";
-
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}${endpoint}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: {
-            teamName,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        console.log("데이터 불러오기 성공:", response.data);
-        setPreview(response.data.fileUrl); // 서버에서 받은 URL을 미리보기로 설정
-      }
-    } catch (error) {
-      console.error(`${viewMode} 데이터 불러오기 실패:`, error);
-      alert("데이터 불러오기 중 오류가 발생했습니다.");
     }
   };
 
@@ -198,7 +234,7 @@ const Backepage = () => {
                   sx={{ backgroundColor: "#1976d2", color: "#fff" }}
                 >
                   파일 업로드
-                  <input type="file" hidden onChange={handleFileUpload} />
+                  <input type="file" hidden onChange={viewMode === "ERD" ? handleERDUpload : handleAPIUpload} />
                 </Button>
               )}
             </Box>
