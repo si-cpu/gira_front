@@ -15,11 +15,11 @@ import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "./UserContext";
 import { jwtDecode } from "jwt-decode";
-import axios from "axios";
+import axios, { HttpStatusCode } from "axios";
 
 const Loginpage = () => {
   const [email, setEmail] = useState("");
-  const [nickname, setNickname] = useState(""); // 닉네임 상태 추가
+  const [nickName, setNickName] = useState("");
   const [password, setPassword] = useState("");
   const [autoSignIn, setAutoSignIn] = useState(false);
   const [emailError, setEmailError] = useState("");
@@ -28,6 +28,7 @@ const Loginpage = () => {
 
   const navigate = useNavigate();
   const { onLogin } = useContext(AuthContext);
+  console.log("AuthContext onLogin 확인:", onLogin);
 
   // 이메일 유효성 검사 패턴
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,6 +44,11 @@ const Loginpage = () => {
     }
   };
 
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    setPassword(value);
+  };
+
   const doLogin = async () => {
     setEmailError("");
     setPasswordError("");
@@ -52,46 +58,51 @@ const Loginpage = () => {
       return;
     }
 
-    const loginData = {
-      email,
-      password,
-    };
+    if (!password) {
+      setPasswordError("비밀번호를 입력하세요.");
+      return;
+    }
+
+    const loginData = { email, nickName, password };
 
     try {
       const res = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/user/doLogin`,
-        loginData
+        `${process.env.REACT_APP_API_BASE_URL}/user/signin`,
+        loginData,
+        { headers: { "Content-Type": "application/json" } }
       );
-      console.log("axios로 로그인 요청 결과: ", res);
 
-      alert("로그인 성공!");
-      const token = res.data.result.token;
-      const id = res.data.result.id;
-      const role = jwtDecode(token).role;
+      console.log("====================================");
+      console.log("res: ", res);
+      console.log("====================================");
+      console.log("로그인 응답 헤더:", res.headers);
 
-      if (autoSignIn) {
-        localStorage.setItem("jwtToken", token);
-      } else {
-        sessionStorage.setItem("jwtToken", token);
+      // 응답 헤더에서 데이터 추출 (키 이름 소문자로 접근)
+      const token = res.headers["authorization"]?.split(" ")[1]; // Bearer 토큰
+      const role = res.headers["role"]; // 사용자 역할
+      const nickname = res.headers["nickname"]; // 닉네임
+      const userEmail = res.headers["email"]; // 이메일
+      const teamName = res.headers["teamName"]; //팀이름
+
+      console.log("====================================");
+      console.log(token, role, nickname, userEmail);
+      console.log("====================================");
+
+      if (res.status === 200) {
+        alert("로그인 성공!");
+        console.log("onLogin 호출", { token, role, userEmail, nickname });
+
+        onLogin(token, role, userEmail, nickname);
+        console.log(token, role, userEmail, nickname);
+
+        navigate("/");
       }
-      onLogin(token, id, role, email, nickname); // 닉네임을 함께 전달
-      navigate("/");
-    } catch (e) {
-      console.log(e);
-      const errorMessage = e.response?.data?.statusMessage || "로그인 실패!";
-      setPasswordError(errorMessage);
-    }
-  };
-
-  const sendVerificationpassword = async () => {
-    try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/send-email-verified`,
-        { email }
-      );
-      alert("메일이 전송되었습니다. 이메일을 확인해주세요");
     } catch (error) {
-      alert("메일 전송 실패. 이메일을 다시 작성해주세요");
+      console.error("로그인 실패:", error);
+      const errorMessage =
+        error.response?.data?.statusMessage || "로그인 실패!";
+      setPasswordError(errorMessage);
+      alert("로그인 실패: " + errorMessage);
     }
   };
 
@@ -134,8 +145,8 @@ const Loginpage = () => {
               <TextField
                 fullWidth
                 variant="outlined"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)} // 닉네임 입력 핸들러
+                value={nickName}
+                onChange={(e) => setNickName(e.target.value)}
                 placeholder="닉네임을 입력하세요"
               />
             </Grid>
@@ -146,7 +157,7 @@ const Loginpage = () => {
                 variant="outlined"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 placeholder="비밀번호를 입력하세요"
                 error={!!passwordError}
                 helperText={passwordError}
@@ -162,7 +173,7 @@ const Loginpage = () => {
                     onChange={(e) => setAutoSignIn(e.target.checked)}
                   />
                 }
-                label="AutoSignIn"
+                label="Auto Sign In"
               />
             </Grid>
             <Grid item xs={12}>
@@ -194,15 +205,7 @@ const Loginpage = () => {
                 </Grid>
               </Grid>
             </Grid>
-            <Grid item xs={12}>
-              <Link
-                href="#"
-                underline="hover"
-                onClick={sendVerificationpassword}
-              >
-                Forgot password?
-              </Link>
-            </Grid>
+            <Grid item xs={12}></Grid>
             {message && (
               <Grid item xs={12}>
                 <Typography>{message}</Typography>

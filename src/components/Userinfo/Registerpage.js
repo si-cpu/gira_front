@@ -60,7 +60,7 @@ const Registerpage = () => {
     }
     try {
       const res = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/user/register`,
+        `${process.env.REACT_APP_API_BASE_URL}/user/signup`,
         {
           email,
           nickName,
@@ -123,7 +123,7 @@ const Registerpage = () => {
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  label="Nickname"
+                  label="nickName"
                   placeholder="닉네임을 입력해주세요"
                   fullWidth
                   variant="outlined"

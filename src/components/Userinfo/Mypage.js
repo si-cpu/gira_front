@@ -7,50 +7,50 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { useUserContext } from "./UserContext";
+import AuthContext from "./UserContext";
 
 const Mypage = () => {
-  const { userEmail, userNickname } = useUserContext();
-  const [email, setEmail] = useState(userEmail);
-  const [nickname, setNickname] = useState(userNickname);
+  const [email, setEmail] = useState();
+  const [nickname, setNickname] = useState();
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const { userEmail, userRole, userNickname } = useContext(AuthContext);
+  const [passwordError, setPasswordError] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  useEffect(() => {
-    setEmail(userEmail);
-    setNickname(userNickname);
-  }, [userEmail, userNickname]);
+  const token = sessionStorage.getItem("ACCESS_TOKEN"); // 저장된 토큰 가져오기
+
+  useEffect(() => {});
 
   const deleteHandler = async () => {
     try {
-      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/user/delete`);
+      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/user/delete`, {
+        headers: {
+          Authorization: `Bearer ${token}`, // 헤더에 토큰 추가
+        },
+      });
       setMessage("계정이 삭제되었습니다.");
     } catch (error) {
       alert("계정 삭제를 실패했습니다.");
     }
   };
 
-  const emailModifyHandler = async () => {
-    try {
-      const response = await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/user/update-email`,
-        { email }
-      );
-      setMessage(response.data.message);
-    } catch (error) {
-      alert("이메일 수정 실패했습니다.");
-    }
-  };
-
   const nicknameModifyHandler = async () => {
     try {
       const response = await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/user/update-nickname`,
-        { nickname }
+        `${process.env.REACT_APP_API_BASE_URL}/user/modifyuser`,
+        { nickName: nickname, password: password },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // 헤더에 토큰 추가
+            "Content-Type": "application/json",
+          },
+        }
       );
       setMessage(response.data.message);
+      alert("닉네임 수정 완료!");
     } catch (error) {
       alert("닉네임 수정 실패했습니다.");
     }
@@ -59,13 +59,30 @@ const Mypage = () => {
   const passwordModifyHandler = async () => {
     try {
       const response = await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/user/update-password`,
-        { password }
+        `${process.env.REACT_APP_API_BASE_URL}/user/modifyuser`,
+        { nickName: nickname, password: password },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // 헤더에 토큰 추가
+            "Content-Type": "application/json",
+          },
+        }
       );
       setMessage(response.data.message);
+      alert("비밀번호 수정 완료!");
     } catch (error) {
       alert("비밀번호 수정 실패했습니다");
     }
+  };
+
+  const validatePassword = (password) => {
+    const regex = /^(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return regex.test(password);
+  };
+  const handlePasswordChange = (e) => {
+    const password = e.target.value;
+    setPassword(password);
+    setPasswordError(!validatePassword(password));
   };
 
   return (
@@ -91,30 +108,12 @@ const Mypage = () => {
         >
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <Typography variant="body1">Email</Typography>
-              <TextField
-                fullWidth
-                variant="outlined"
-                value={email}
-                placeholder={userEmail}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                onClick={emailModifyHandler}
-              >
-                이메일 수정
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
               <Typography variant="body1">Nickname</Typography>
               <TextField
                 fullWidth
                 variant="outlined"
                 value={nickname}
-                placeholder={userNickname}
+                placeholder={`${userNickname}`}
                 onChange={(e) => setNickname(e.target.value)}
               />
               <Button
@@ -129,12 +128,19 @@ const Mypage = () => {
             <Grid item xs={12}>
               <Typography variant="body1">Password</Typography>
               <TextField
+                label="Password"
+                placeholder="비밀번호를 입력해주세요"
                 fullWidth
                 variant="outlined"
                 type="password"
-                placeholder="************"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
+                error={passwordError}
+                helperText={
+                  passwordError
+                    ? "비밀번호는 최소 8자, 소문자, 숫자 및 특수 문자를 포함해야 합니다."
+                    : ""
+                }
               />
               <Button
                 fullWidth
