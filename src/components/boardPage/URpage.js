@@ -1,237 +1,161 @@
-import {
-  AppBar,
-  Box,
-  Button,
-  Grid,
-  Paper,
-  TextField,
-  Toolbar,
-  Typography,
-  button,
-} from "@mui/material";
-import { Container, styled } from "@mui/system";
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useTeam } from "../Userinfo/TeamContext"; // TeamContext 사용
+import React, { useState, useEffect } from 'react';
+import { Container, Grid, Box, Typography, TextField, Button, Paper } from '@mui/material';
+import axios from 'axios';
+import { useTeam } from '../Userinfo/TeamContext';
 
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  backgroundColor: "#f2f2f2",
-  borderRadius: theme.shape.borderRadius,
-  boxShadow: theme.shadows,
-  padding: theme.spacing(2),
-}));
-
-const Titlepage = () => {
+const URpage = () => {
   const { teamName } = useTeam();
-  const [screen, setScreen] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [deadline, setDeadline] = useState("");
-  const [owner, setOwner] = useState("");
-  const [status, setStatus] = useState("");
-  const [apiFields, setApiFields] = useState([
-    {
-      screen: "",
-      name: "",
-      description: "",
-      deadline: "",
-      owner: "",
-      status: "",
-    },
-  ]);
+  const userName = sessionStorage.getItem("USER_NICKNAME");
 
-  const handleApiFieldChange = (index, field, value) => {
-    const updatedFields = [...apiFields];
-    updatedFields[index][field] = value;
-    setApiFields(updatedFields);
-  };
+  const [urFields, setUrFields] = useState([]);
+  const [originalUrs, setOriginalUrs] = useState([]);
+  const [newUrs, setNewUrs] = useState([]);
+  const [removedUrIds, setRemovedUrIds] = useState([]);
+  const [modifiedUrs, setModifiedUrs] = useState([]);
 
-  const addApiField = () => {
-    setApiFields([
-      ...apiFields,
-      {
-        screen: "",
-        name: "",
-        description: "",
-        deadline: "",
-        owner: "",
-        status: "",
-      },
-    ]);
-  };
-
-  const deleteApiField = (index) => {
-    const updatedFields = apiFields.filter((_, i) => i !== index);
-    setApiFields(updatedFields);
-  };
-
-  const handleSave = async () => {
-    const validFields = apiFields.filter(
-      (field) => field.screen && field.name && field.description
-    );
-
-    if (validFields.length === 0) {
-      alert("유효한 API 데이터를 입력해주세요.");
-      return;
-    }
-
-    const token = sessionStorage.getItem("ACCESS_TOKEN"); // 저장된 토큰 가져오기
-    try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/giraboard/update`,
-        { apis: validFields },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`, // 헤더에 토큰 추가
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      alert("API 저장 성공!");
-      console.log("API 저장 응답:", response.data);
-    } catch (error) {
-      console.error("API 저장 실패:", error);
-      alert("API 저장 중 오류가 발생했습니다.");
-    }
-  };
-  const handleLoad = async () => {
-    const token = sessionStorage.getItem("ACCESS_TOKEN"); // 저장된 토큰 가져오기
+  const joinUrPage = async () => {
+    const token = sessionStorage.getItem("ACCESS_TOKEN");
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/board/getur`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: {
-            teamName,
-          },
+          headers: { Authorization: `Bearer ${token}` },
+          params: { teamName }
         }
       );
 
-      setApiFields(response.data.apis || []); // 응답 데이터를 상태로 설정
-      alert("API 데이터 로드 성공!");
-      console.log("API 로드 응답:", response.data);
+      if (response.data.statusCode === 200) {
+        setUrFields(response.data.result);
+        setOriginalUrs(response.data.result);
+        setNewUrs([]);
+        setRemovedUrIds([]);
+        setModifiedUrs([]);
+      }
     } catch (error) {
-      console.error("API 데이터 로드 실패:", error);
-      alert("불러오기 중 오류가 발생했습니다.");
+      console.error("불러오기 실패:", error);
     }
   };
 
-  // useEffect로 초기 데이터 로드
+  const handleUrFieldChange = (index, field, value) => {
+    const updatedFields = [...urFields];
+    const ur = updatedFields[index];
+    
+    const fieldValue = field === 'deadline' ? `${value}T23:59:59` : value;
+    
+    updatedFields[index] = { 
+      ...ur, 
+      [field]: fieldValue,
+      teamName,
+      writer: userName
+    };
+    setUrFields(updatedFields);
+
+    if (ur.id) {
+      setModifiedUrs(prev => {
+        const filtered = prev.filter(t => t.id !== ur.id);
+        return [...filtered, { ...updatedFields[index], writer: userName }];
+      });
+    } else {
+      setNewUrs(prev => {
+        const newPrev = [...prev];
+        const newUrIndex = index - originalUrs.length;
+        if (newUrIndex >= 0) {
+          newPrev[newUrIndex] = { ...updatedFields[index], writer: userName };
+        }
+        return newPrev;
+      });
+    }
+  };
+
+  const addUrField = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const newUr = {
+      name: "",
+      content: "",
+      deadline: `${today}T23:59:59`,
+      manager: "",
+      teamName,
+      writer: userName
+    };
+    setUrFields(prev => [...prev, newUr]);
+    setNewUrs(prev => [...prev, newUr]);
+  };
+
+  const handleRemoveUr = (index) => {
+    const ur = urFields[index];
+    if (ur.id) {
+      setRemovedUrIds(prev => [...prev, ur.id]);
+    } else {
+      const newUrIndex = index - originalUrs.length;
+      setNewUrs(prev => prev.filter((_, i) => i !== newUrIndex));
+    }
+    setUrFields(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveAll = async () => {
+    const token = sessionStorage.getItem("ACCESS_TOKEN");
+    
+    const payload = {
+      addUR: newUrs,
+      removeUR: removedUrIds.map(id => ({ id })),
+      editUR: modifiedUrs
+    };
+
+    try {
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/board/updateur`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.statusCode === 200) {
+        alert("저장 성공!");
+        joinUrPage();
+      }
+    } catch (error) {
+      console.error("저장 실패:", error);
+      alert("저장 중 오류가 발생했습니다.");
+    }
+  };
+
   useEffect(() => {
-    handleLoad();
+    joinUrPage();
   }, []);
 
   return (
     <Container maxWidth="lg" sx={{ height: "1024px", position: "relative" }}>
       <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
         <Grid item xs={12}>
-          <StyledPaper>
-            <Typography
-              variant="h6"
-              fontSize={45}
-              align="center"
-              sx={{ marginBottom: 2, color: "#555" }}
-            >
-              UR & WBS {/* 현재 모드 표시 */}
+          <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+            <Typography variant="h6" fontSize={45} align="center" sx={{ marginBottom: 2, color: "#555" }}>
+              UR & WBS
             </Typography>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              padding={2}
-            ></Box>
-            <Box
-              sx={{
-                width: "100%",
-                height: "600px",
-                overflowY: "auto",
-                padding: 2,
-              }}
-            >
-              {apiFields.map((field, index) => (
-                <Box
-                  key={index}
-                  display="grid"
-                  gridTemplateColumns="1fr 1fr 2fr 1fr 1fr 1fr auto"
-                  gap={2}
-                  alignItems="center"
-                  sx={{
-                    border: "1px solid #ccc",
-                    borderRadius: "8px",
-                    padding: "8px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <TextField
-                    fullWidth
-                    label="요구사항 이름"
-                    value={field.name}
-                    onChange={(e) =>
-                      handleApiFieldChange(index, "name", e.target.value)
-                    }
-                  />
-                  <TextField
-                    fullWidth
-                    label="요구사항 내용"
-                    value={field.description}
-                    onChange={(e) =>
-                      handleApiFieldChange(index, "description", e.target.value)
-                    }
-                  />
-                  <TextField
-                    fullWidth
-                    type="date"
-                    label="기한"
-                    value={field.deadline}
-                    InputLabelProps={{ shrink: true }}
-                    onChange={(e) =>
-                      handleApiFieldChange(index, "deadline", e.target.value)
-                    }
-                  />
-                  <TextField
-                    fullWidth
-                    label="담당자"
-                    value={field.owner}
-                    onChange={(e) =>
-                      handleApiFieldChange(index, "owner", e.target.value)
-                    }
-                  />
-                  <TextField
-                    fullWidth
-                    label="확인"
-                    value={field.status}
-                    onChange={(e) =>
-                      handleApiFieldChange(index, "status", e.target.value)
-                    }
-                  />
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => deleteApiField(index)}
-                  >
-                    삭제
-                  </Button>
+            <Box sx={{ width: "100%", height: "600px", overflowY: "auto", padding: 2 }}>
+              {urFields.map((field, index) => (
+                <Box key={index} display="grid" gridTemplateColumns="1fr 1fr 2fr 1fr 1fr auto" gap={2} alignItems="center"
+                  sx={{ border: "1px solid #ccc", borderRadius: "8px", padding: "8px", marginBottom: "8px" }}>
+                  <TextField fullWidth label="요구사항 이름" value={field.name || ""} onChange={(e) => handleUrFieldChange(index, "name", e.target.value)} />
+                  <TextField fullWidth label="요구사항 내용" value={field.content || ""} onChange={(e) => handleUrFieldChange(index, "content", e.target.value)} />
+                  <TextField fullWidth type="date" label="기한" value={field.deadline ? field.deadline.split('T')[0] : ""} InputLabelProps={{ shrink: true }} onChange={(e) => handleUrFieldChange(index, "deadline", e.target.value)} />
+                  <TextField fullWidth label="작성자" value={field.writer || ""} InputProps={{ readOnly: true }} />
+                  <TextField fullWidth label="담당자" value={field.manager || ""} onChange={(e) => handleUrFieldChange(index, "manager", e.target.value)} />
+                  <Button variant="outlined" color="error" onClick={() => handleRemoveUr(index)}>삭제</Button>
                 </Box>
               ))}
-              <Button variant="outlined" onClick={addApiField}>
-                + 추가
+              <Button variant="outlined" onClick={addUrField}>+ 추가</Button>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, p: 2 }}>
+              <Button variant="contained" color="primary" onClick={handleSaveAll}>
+                저장
               </Button>
             </Box>
-
-            <Box
-              display="flex"
-              justifyContent="right"
-              padding={2}
-              marginTop="auto"
-              margin={1}
-            >
-              <Button onClick={handleSave}>저장</Button>
-            </Box>
-          </StyledPaper>
+          </Paper>
         </Grid>
       </Grid>
     </Container>
   );
 };
-export default Titlepage;
+
+export default URpage;
